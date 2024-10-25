@@ -1,10 +1,18 @@
-module Parsers.Markdown exposing (parse, render, Token(..), TokenState(..))
+module Parsers.Markdown exposing (Token(..), TokenState(..), parse, render)
 
 import Html exposing (..)
 
+
+{--
+This a Markdown parser based on a Finite State Machine (FSM) approach.
+--}
+
+-- General Types
+
 type TokenState
-    = Open
-    | Close
+    = OpenTag
+    | CloseTag
+    | SelfClosedTag
 
 type Token
     = Heading Int TokenState
@@ -12,46 +20,62 @@ type Token
 
 -- Parsing
 
+type State
+    = Start
+    | Block
+    | Inline
+    | Heading
+    | Text
+
+
 type alias Context =
-    { tokens : List Token
-    , closeStack : List Token
+    { state :State
     , column : Int
+    , offset : Int
+    , tokens : List Token
+    , stack : List Token
     }
 
 parse : String -> List Token
 parse str =
     let
+        ctx : Context
         ctx =
-            { tokens = []
-            , closeStack = []
+            { state = Start
             , column = 0
+            , offset = 0
+            , tokens = []
+            , stack = []
             }
     in
-    String.foldl tokenize ctx str
-    |> .tokens
-    |> List.reverse
+    String.foldl fsm ctx str
+        |> .tokens
 
-tokenize : Char -> Context -> Context
-tokenize char ctx =
+
+updateContext : Context -> Char -> Context
+updateContext ctx char =
     case char of
-        '#' ->
-            { ctx | tokens = Heading 1 Open :: ctx.tokens }
+        '\n' ->
+            { ctx | column = 0, offset = ctx.offset + 1 }
 
         _ ->
-            appendText ctx (String.fromChar char)
+            { ctx | column = ctx.column + 1, offset = ctx.offset + 1 }
 
-appendText : Context -> String -> Context
-appendText ctx str =
-    case ctx.tokens of
-        Text t :: xs ->
-            { ctx | tokens = Text (t ++ str) :: xs }
 
-        _ ->
-            { ctx | tokens = Text str :: ctx.tokens }
+fsm : Context -> Char -> Context
+fsm ctx' char =
+    let
+        ctx = updateContext ctx' char
+    in
+    -- Transition Table
+    case (ctx.state, char) of
+        (Start, '#') ->
+
 
 
 -- Rendering
 
+
 render : String -> Html msg
-render str =
-    div [] [text "NotImplemented"]
+render _ =
+    div [] [ text "NotImplemented" ]
