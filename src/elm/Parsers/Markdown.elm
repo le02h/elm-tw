@@ -27,7 +27,7 @@ type Token
 type State
     = BlockState
     | InlineState
-    | HeadingState
+    | HeadingState Int
     | TextState
 
 
@@ -35,7 +35,6 @@ type alias Context =
     { input : String
     , state : State
     , span : ( Int, Int )
-    , heading_level : Int
     , tokens : List Token
     , stack : List Token
     }
@@ -49,7 +48,6 @@ parse input =
             { input = input
             , state = BlockState
             , span = ( 0, 0 )
-            , heading_level = 0
             , tokens = []
             , stack = []
             }
@@ -67,7 +65,7 @@ fsm char ctx =
             ctx.span
 
         newSpan =
-            ( spanEnd + 1, spanEnd + 2 )
+            ( spanEnd + 1, spanEnd + 1 )
 
         ctx_ =
             { ctx | span = ( spanStart, spanEnd + 1 ) }
@@ -75,38 +73,44 @@ fsm char ctx =
         state_event =
             ( ctx.state, char )
     in
-    -- Transition Table
     case state_event of
-        ( BlockState, '#' ) ->
-            { ctx_ | state = HeadingState, heading_level = 1 }
-
+        -- Transition Table
+        ( BlockState, '#' ) -> transitionTo ctx_ (HeadingState 1)
         ( BlockState, _ ) -> ctx_
-
-        ( HeadingState, '#' ) ->
-            { ctx_ | heading_level = ctx.heading_level + 1 }
-
-        ( HeadingState, ' ' ) ->
-            let
-                level = ctx.heading_level
-            in
-            { ctx_ | state = InlineState
-            , tokens = ctx.tokens ++ [ Heading level OpenTag ]
-            , stack = Heading level CloseTag :: ctx.stack
-            , span = newSpan
-            , heading_level = 0 }
-
-        ( HeadingState, _ ) -> ctx_
-
-        ( InlineState, _ ) ->
-            { ctx_ | state = TextState }
-
-        ( TextState, '\n') ->
-            { ctx_ | state = BlockState
-            , tokens = ctx.tokens ++ [ Text (String.slice spanStart spanEnd ctx.input) ]
-            , span = newSpan }
-
+        ( HeadingState level, '#' ) -> transitionTo ctx_ (HeadingState (level + 1))
+        ( HeadingState level, ' ' ) -> headingMatch ctx_ level
+        ( HeadingState _, _ ) -> ctx_
+        ( InlineState, _ ) -> transitionTo ctx_ TextState
         ( TextState, _ ) -> ctx_
 
+
+transitionTo : Context -> State -> Context
+transitionTo ctx state =
+    { ctx | state = state }
+
+
+headingMatch : Context -> Int -> Context
+headingMatch ctx level =
+    let
+        (_, spanEnd) =
+            ctx.span
+
+        nextSpan =
+            ( spanEnd, spanEnd )
+    in
+    if level <= 3 then
+        { ctx | state = InlineState
+        , tokens = ctx.tokens ++ [ Heading level OpenTag ]
+        , stack = Heading level CloseTag :: ctx.stack
+        , span = nextSpan
+        }
+    else
+        -- TODO create a paragraph token instead
+        { ctx | state = InlineState
+        , tokens = ctx.tokens ++ [ Heading level OpenTag ]
+        , stack = Heading level CloseTag :: ctx.stack
+        , span = nextSpan
+        }
 
 finalize : Context -> Context
 finalize ctx =

@@ -10,9 +10,22 @@ suite : Test
 suite =
     describe "Parse Markdown in a String to a List of Tokens"
         [ describe "Simple CommonMark"
-            [ test "parses '# Hello, World!'" <|
-                \_ ->
-                    parse "# Hello, World!"
-                    |> Expect.equal [ Heading 1 OpenTag, Text "Hello, World!", Heading 1 CloseTag ]
+            [ describe "Heading only"
+                [ test "parses h1" <|
+                    \_ ->
+                        parse "# Hello, World!"
+                        |> Expect.equal [ Heading 1 OpenTag, Text "Hello, World!", Heading 1 CloseTag ]
+
+                , test "parses h2" <|
+                    \_ ->
+                        parse "## Hello, World!"
+                        |> Expect.equal [ Heading 2 OpenTag, Text "Hello, World!", Heading 2 CloseTag ]
+
+                , test "parses h3" <|
+                    \_ ->
+                        parse "### Hello, World!"
+                        |> Expect.equal [ Heading 3 OpenTag, Text "Hello, World!", Heading 3 CloseTag ]
+
+                ]
             ]
         ]
