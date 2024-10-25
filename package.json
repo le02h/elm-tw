@@ -4,7 +4,7 @@
   "description": "A reimplementation of TiddlyWiki using Elm and Javascript.",
   "main": "index.js",
   "scripts": {
-    "test": "elm-test 'src/**/*Tests.elm'"
+    "test": "elm-test 'src/elm/**/*Tests.elm'"
   },
   "keywords": [],
   "author": "",

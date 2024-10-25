@@ -3,7 +3,7 @@ module Parsers.MarkdownTests exposing (..)
 import Expect exposing (Expectation)
 import Fuzz exposing (Fuzzer, int, list, string)
 import Test exposing (..)
-import Parsers.Markdown exposing (parse, Token(..), TokenState(..))
+import Parsers.Markdown exposing (parse, Token(..), TagType(..))
 
 
 suite : Test
